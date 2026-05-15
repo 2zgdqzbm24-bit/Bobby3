@@ -1,79 +1,164 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>孔德𩓙的個人空間 | Hung Tak Shing</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #fcfcfc; }
-    </style>
+<meta charset="UTF-8">
+<title>深夜廢校 恐怖遊戲</title>
+<style>
+* {margin:0;padding:0;}
+body {overflow:hidden;background:#000;}
+canvas {display:block;}
+</style>
 </head>
-<body class="text-gray-800">
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <nav class="max-w-4xl mx-auto px-6 py-8 flex justify-between items-center">
-        <div class="text-xl font-bold tracking-tight text-gray-900">Hung's Blog</div>
-        <div class="space-x-6 text-sm text-gray-500">
-            <a href="#about" class="hover:text-emerald-600 transition">關於我</a>
-            <a href="#hobbies" class="hover:text-emerald-600 transition">日常/興趣</a>
-            <a href="#contact" class="hover:text-emerald-600 transition">聯絡</a>
-        </div>
-    </nav>
+<script>
+// 場景、相機、渲染器
+let scene,camera,renderer,player,ghost,key,door;
+let moveForward=false,moveBack=false,moveLeft=false,moveRight=false;
+let hasKey = false;
+let gameOver = false;
 
-    <header class="max-w-4xl mx-auto px-6 py-12 md:py-20">
-        <h1 class="text-4xl md:text-5xl font-bold mb-6 text-gray-900">你好，我是孔德𩓙 👋</h1>
-        <p class="text-xl text-gray-600 leading-relaxed max-w-2xl">
-            一名正在努力平衡學業與生活的學生。喜歡在田徑場上流汗，也喜歡在閒暇時探索新事物。
-        </p>
-    </header>
+// 初始化
+function init(){
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x000000,10,50);
 
-    <main class="max-w-4xl mx-auto px-6">
-        
-        <section id="about" class="py-12 border-t border-gray-100">
-            <h2 class="text-sm uppercase tracking-widest text-emerald-600 font-bold mb-4">About Me</h2>
-            <div class="grid md:grid-cols-2 gap-10">
-                <div class="text-gray-600 leading-7">
-                    <p>我目前專注於校園生活，雖然課業有時會有點忙碌，但我很享受在學校裡學習新知識、認識新朋友的過程。</p>
-                    <p class="mt-4">在課餘時間，你通常可以在學校的田徑場找到我。對我來說，跑步不僅僅是比賽，更是一種放鬆心情和自我挑戰的方式。</p>
-                </div>
-                <div class="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
-                    <h3 class="font-bold text-emerald-800 mb-3">目前的目標</h3>
-                    <ul class="text-sm space-y-2 text-emerald-700">
-                        <li>📍 順利完成本學期的課程項目</li>
-                        <li>🏃 持續練習，保持身體健康</li>
-                        <li>🌟 學習攝影（或寫下你的其他興趣）</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
+  camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000);
+  camera.position.set(0,2,5);
 
-        <section id="hobbies" class="py-12 border-t border-gray-100">
-            <h2 class="text-sm uppercase tracking-widest text-emerald-600 font-bold mb-8">Interests</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="group cursor-default">
-                    <div class="text-3xl mb-3">🏃‍♂️</div>
-                    <h4 class="font-bold mb-2 group-hover:text-emerald-600 transition">田徑愛好</h4>
-                    <p class="text-sm text-gray-500">喜歡短跑帶來的速度感，是校園生活中不可或缺的一部分。</p>
-                </div>
-                <div class="group cursor-default">
-                    <div class="text-3xl mb-3">📚</div>
-                    <h4 class="font-bold mb-2 group-hover:text-emerald-600 transition">學習生活</h4>
-                    <p class="text-sm text-gray-500">雖然考試偶爾有壓力，但探索專業領域的過程很有趣。</p>
-                </div>
-                <div class="group cursor-default">
-                    <div class="text-3xl mb-3">☕</div>
-                    <h4 class="font-bold mb-2 group-hover:text-emerald-600 transition">休閒放鬆</h4>
-                    <p class="text-sm text-gray-500">假日喜歡和朋友去咖啡廳，或是簡單地放空休息。</p>
-                </div>
-            </div>
-        </section>
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-    </main>
+  // 環境光
+  let light = new THREE.AmbientLight(0x222222);
+  scene.add(light);
 
-    <footer class="max-w-4xl mx-auto px-6 py-20 border-t border-gray-100 mt-12 text-center text-gray-400 text-sm">
-        <p>© 2024 Hung Tak Shing. 保持熱愛，奔向生活。</p>
-    </footer>
+  // 地面
+  let floorGeo = new THREE.PlaneGeometry(100,100);
+  let floorMat = new THREE.MeshLambertMaterial({color:0x111111});
+  let floor = new THREE.Mesh(floorGeo,floorMat);
+  floor.rotation.x = -Math.PI/2;
+  scene.add(floor);
 
+  // 牆壁
+  createWall(0,2,-30,100,5,1);
+  createWall(0,2,30,100,5,1);
+  createWall(-30,2,0,1,5,100);
+  createWall(30,2,0,1,5,100);
+
+  // 玩家碰撞體
+  player = new THREE.Group();
+  scene.add(player);
+
+  // 女鬼
+  let ghostGeo = new THREE.BoxGeometry(1,2,1);
+  let ghostMat = new THREE.MeshLambertMaterial({color:0x8888ff,transparent:true,opacity:0.7});
+  ghost = new THREE.Mesh(ghostGeo,ghostMat);
+  ghost.position.set(5,1,-10);
+  scene.add(ghost);
+
+  // 鑰匙
+  let keyGeo = new THREE.TorusGeometry(0.3,0.1,8,16);
+  let keyMat = new THREE.MeshLambertMaterial({color:0xffff00});
+  key = new THREE.Mesh(keyGeo,keyMat);
+  key.position.set(-8,1,-5);
+  scene.add(key);
+
+  // 逃生門
+  let doorGeo = new THREE.BoxGeometry(3,4,1);
+  let doorMat = new THREE.MeshLambertMaterial({color:0x442200});
+  door = new THREE.Mesh(doorGeo,doorMat);
+  door.position.set(-15,2,-20);
+  scene.add(door);
+
+  // 鍵盤控制
+  document.addEventListener('keydown',e=>{
+    if(e.key.toLowerCase()==='w')moveForward=true;
+    if(e.key.toLowerCase()==='s')moveBack=true;
+    if(e.key.toLowerCase()==='a')moveLeft=true;
+    if(e.key.toLowerCase()==='d')moveRight=true;
+  });
+  document.addEventListener('keyup',e=>{
+    if(e.key.toLowerCase()==='w')moveForward=false;
+    if(e.key.toLowerCase()==='s')moveBack=false;
+    if(e.key.toLowerCase()==='a')moveLeft=false;
+    if(e.key.toLowerCase()==='d')moveRight=false;
+  });
+
+  // 滑鼠視角
+  let mouseX=0;
+  document.addEventListener('mousemove',e=>{
+    mouseX += e.movementX * 0.003;
+    camera.rotation.y = mouseX;
+  });
+
+  animate();
+}
+
+function createWall(x,y,z,w,h,d){
+  let geo = new THREE.BoxGeometry(w,h,d);
+  let mat = new THREE.MeshLambertMaterial({color:0x333333});
+  let wall = new THREE.Mesh(geo,mat);
+  wall.position.set(x,y,z);
+  scene.add(wall);
+}
+
+// 碰撞距離
+function getDist(obj1,obj2){
+  let dx = obj1.position.x - obj2.position.x;
+  let dz = obj1.position.z - obj2.position.z;
+  return Math.sqrt(dx*dx+dz*dz);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(gameOver)return;
+
+  // 玩家移動
+  let speed = 0.15;
+  let angle = camera.rotation.y;
+  if(moveForward){
+    camera.position.x += Math.sin(angle)*speed;
+    camera.position.z += Math.cos(angle)*speed;
+  }
+  if(moveBack){
+    camera.position.x -= Math.sin(angle)*speed;
+    camera.position.z -= Math.cos(angle)*speed;
+  }
+  if(moveLeft)camera.position.x -= speed;
+  if(moveRight)camera.position.x += speed;
+
+  // 女鬼追人
+  let dx = camera.position.x - ghost.position.x;
+  let dz = camera.position.z - ghost.position.z;
+  ghost.position.x += dx*0.02;
+  ghost.position.z += dz*0.02;
+
+  // 撿鑰匙
+  if(!hasKey && getDist(camera,key)<2){
+    hasKey = true;
+    scene.remove(key);
+    alert('撿到鑰匙！快去逃生門！');
+  }
+
+  // 勝利
+  if(hasKey && getDist(camera,door)<3){
+    gameOver=true;
+    alert('逃離成功！通關！');
+  }
+
+  // 被鬼抓到
+  if(getDist(camera,ghost)<1.5){
+    gameOver=true;
+    alert('被女鬼抓到！遊戲結局：被困廢校');
+  }
+
+  renderer.render(scene,camera);
+}
+
+init();
+</script>
 </body>
 </html>
